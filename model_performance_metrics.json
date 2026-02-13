@@ -1,0 +1,17 @@
+{
+    "model_name": "Random Forest Regressor",
+    "application": "Solar Thermal System Performance Prediction",
+    "r2_score": 1.0,
+    "mae_kW": 0.004,
+    "rmse_kW": 0.007,
+    "training_samples": 17611,
+    "testing_samples": 4403,
+    "total_samples": 22014,
+    "features_used": [
+        "DNI_W_m2",
+        "Ambient_Temp_C",
+        "Wind_Speed_mps",
+        "Hour",
+        "DayOfYear"
+    ]
+}

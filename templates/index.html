@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Thermal Power Forecasting | AI-Powered Predictions</title>
+    <meta name="description" content="Advanced machine learning-based 48-hour solar thermal power forecasting system">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-solar: #fbbf24;
+            --accent-energy: #f59e0b;
+            --accent-glow: #ff9500;
+            --accent-cyan: #22d3ee;
+            --accent-purple: #a855f7;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+        
+        /* Animated Background */
+        .bg-container { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+        .bg-gradient { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251, 191, 36, 0.15) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 100% 50%, rgba(34, 211, 238, 0.08) 0%, transparent 40%), radial-gradient(ellipse 50% 30% at 0% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 40%), var(--bg-primary); }
+        .grid-pattern { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 60px 60px; animation: gridMove 20s linear infinite; }
+        @keyframes gridMove { 0% { transform: translate(0, 0); } 100% { transform: translate(60px, 60px); } }
+        .floating-orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.4; animation: float 8s ease-in-out infinite; }
+        .orb-1 { width: 300px; height: 300px; background: var(--accent-solar); top: 10%; right: 20%; animation-delay: 0s; }
+        .orb-2 { width: 200px; height: 200px; background: var(--accent-cyan); bottom: 20%; left: 10%; animation-delay: -2s; }
+        .orb-3 { width: 150px; height: 150px; background: var(--accent-purple); top: 60%; right: 5%; animation-delay: -4s; }
+        @keyframes float { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-30px) scale(1.05); } }
+
+        /* Header */
+        header { position: relative; padding: 60px 20px 40px; text-align: center; }
+        .sun-icon { position: relative; display: inline-block; width: 80px; height: 80px; margin-bottom: 20px; }
+        .sun-core { position: absolute; inset: 15px; background: linear-gradient(135deg, var(--accent-solar), var(--accent-energy)); border-radius: 50%; box-shadow: 0 0 40px var(--accent-solar), 0 0 80px rgba(251, 191, 36, 0.5); animation: sunPulse 3s ease-in-out infinite; }
+        .sun-rays { position: absolute; inset: 0; animation: sunRotate 30s linear infinite; }
+        .sun-rays::before, .sun-rays::after { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent, var(--accent-solar), transparent 30deg); mask: radial-gradient(transparent 30%, black 30%); opacity: 0.5; }
+        .sun-rays::after { transform: rotate(45deg); }
+        @keyframes sunPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes sunRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        header h1 { font-size: clamp(1.8rem, 5vw, 3rem); font-weight: 800; background: linear-gradient(135deg, var(--text-primary), var(--accent-solar), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+        header p { font-size: 1.1rem; color: var(--text-secondary); max-width: 500px; margin: 0 auto; }
+        .badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 20px; padding: 8px 16px; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 30px; font-size: 0.85rem; color: var(--accent-solar); }
+        .badge::before { content: ''; width: 8px; height: 8px; background: var(--accent-solar); border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* Container & Grid */
+        .container { max-width: 1300px; margin: 0 auto; padding: 0 20px 60px; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+        
+        /* Glass Card */
+        .glass-card { background: var(--bg-card); backdrop-filter: blur(20px); border-radius: 20px; border: 1px solid var(--border-glass); padding: 28px; position: relative; overflow: hidden; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); border-color: rgba(255, 255, 255, 0.12); }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
+        .card-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+        
+        /* Specific Icons */
+        .card-icon.location { background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.3); }
+        .card-icon.metrics { background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .card-icon.chart { background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .card-icon.thermal { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); }
+        
+        /* Inputs & Button */
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; }
+        .input-group input { width: 100%; padding: 14px 18px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; color: var(--text-primary); font-size: 1rem; transition: all 0.3s ease; }
+        .input-group input:focus { outline: none; border-color: var(--accent-cyan); background: rgba(34, 211, 238, 0.05); }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .predict-btn { width: 100%; padding: 16px 24px; background: linear-gradient(135deg, var(--accent-energy), var(--accent-solar)); border: none; border-radius: 14px; color: #0a0f1a; font-size: 1rem; font-weight: 700; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s ease; text-transform: uppercase; }
+        .predict-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(251, 191, 36, 0.4); }
+        .predict-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .spinner { display: none; width: 20px; height: 20px; border: 2px solid rgba(10, 15, 26, 0.2); border-top-color: #0a0f1a; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loading .spinner { display: block; } .loading .btn-text { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Metrics */
+        .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .metric-item { text-align: center; padding: 20px 12px; background: rgba(255, 255, 255, 0.02); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .metric-ring { width: 70px; height: 70px; margin: 0 auto 14px; position: relative; }
+        .metric-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .metric-ring circle { fill: none; stroke-linecap: round; }
+        .metric-ring .bg { stroke: rgba(255, 255, 255, 0.05); stroke-width: 6; }
+        .metric-ring .progress { stroke-width: 6; stroke-dasharray: 188.5; stroke-dashoffset: 0; transition: stroke-dashoffset 1s ease; }
+        .metric-ring .progress.r2 { stroke: url(#gradientR2); } .metric-ring .progress.mae { stroke: url(#gradientMAE); } .metric-ring .progress.rmse { stroke: url(#gradientRMSE); }
+        .metric-value { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; }
+        .metric-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; }
+
+        /* Weather */
+        .weather-section { grid-column: 1 / -1; }
+        .weather-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .weather-item { text-align: center; padding: 20px; background: rgba(255, 255, 255, 0.02); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .weather-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+        .weather-value { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+        .weather-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; }
+
+        /* Gauges */
+        .gauge-section { grid-column: 1 / -1; }
+        .gauge-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        .gauge-container { display: flex; flex-direction: column; align-items: center; padding: 30px; background: rgba(255, 255, 255, 0.02); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .gauge { position: relative; width: 200px; height: 100px; margin-bottom: 20px; }
+        .gauge-bg { position: absolute; width: 200px; height: 100px; border-radius: 100px 100px 0 0; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+        .gauge-fill { position: absolute; bottom: 0; left: 0; width: 200px; height: 100px; border-radius: 100px 100px 0 0; transform-origin: center bottom; transform: rotate(0deg); transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .gauge-fill.electrical { background: linear-gradient(to right, #fbbf24, #f59e0b); }
+        .gauge-fill.thermal { background: linear-gradient(to right, #ef4444, #dc2626); }
+        .gauge-center { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 160px; height: 80px; background: var(--bg-primary); border-radius: 80px 80px 0 0; }
+        .gauge-needle { position: absolute; bottom: 0; left: 50%; width: 4px; height: 80px; background: linear-gradient(to top, #fff, transparent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 2px; }
+        .gauge-value-display { text-align: center; }
+        .gauge-power { font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+        .gauge-power.electrical { color: #fbbf24; } .gauge-power.thermal { color: #ef4444; }
+
+        /* Charts */
+        .chart-section { grid-column: 1 / -1; }
+        .chart-container { position: relative; height: 400px; margin-top: 10px; }
+        .chart-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); gap: 16px; opacity: 0.7; }
+        .chart-controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .chart-btn { padding: 8px 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease; }
+        .chart-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
+        .chart-btn.active { background: var(--accent-solar); color: #0a0f1a; border-color: var(--accent-solar); }
+        .chart-btn.thermal.active { background: #ef4444; border-color: #ef4444; }
+        .stats-bar { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        .stat-item { display: flex; align-items: center; gap: 8px; }
+        .stat-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .stat-dot.peak { background: var(--accent-solar); } .stat-dot.avg { background: var(--accent-cyan); } .stat-dot.total { background: var(--accent-purple); }
+        .stat-dot.thermal-peak { background: #ef4444; } .stat-dot.thermal-avg { background: #f97316; } .stat-dot.thermal-total { background: #dc2626; }
+        .stat-info span { display: block; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; }
+        .stat-info strong { font-size: 1.1rem; font-weight: 600; }
+
+        footer { text-align: center; padding: 30px 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-secondary); font-size: 0.9rem; }
+        .toast { position: fixed; bottom: 30px; right: 30px; padding: 16px 24px; background: var(--bg-secondary); border: 1px solid var(--border-glass); border-radius: 12px; color: var(--text-primary); transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; }
+        .toast.show { transform: translateX(0); } .toast.error { border-color: rgba(239, 68, 68, 0.5); } .toast.success { border-color: rgba(34, 197, 94, 0.5); }
+    </style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position: absolute;">
+    <defs>
+        <linearGradient id="gradientR2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+        <linearGradient id="gradientMAE" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+        <linearGradient id="gradientRMSE" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#a855f7"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+    </defs>
+</svg>
+
+<div class="bg-container"><div class="bg-gradient"></div><div class="grid-pattern"></div><div class="floating-orb orb-1"></div><div class="floating-orb orb-2"></div><div class="floating-orb orb-3"></div></div>
+
+<header>
+    <div class="sun-icon"><div class="sun-rays"></div><div class="sun-core"></div></div>
+    <h1>Solar Thermal Power Forecasting</h1>
+    <p>AI-powered 48-hour electrical power predictions using machine learning</p>
+    <div class="badge">Live Weather Integration</div>
+</header>
+
+<div class="container">
+    <div class="dashboard-grid">
+        <!-- Inputs -->
+        <div class="glass-card">
+            <div class="card-header"><div class="card-icon location">📍</div><h3 class="card-title">Location Coordinates</h3></div>
+            <div class="input-row">
+                <div class="input-group"><label>Latitude</label><input type="number" id="lat" value="13.08" step="0.0001"></div>
+                <div class="input-group"><label>Longitude</label><input type="number" id="lon" value="80.27" step="0.0001"></div>
+            </div>
+            <button class="predict-btn" id="predictBtn" onclick="predict()">
+                <span class="btn-content"><span class="btn-text">⚡ Generate Forecast</span><span class="spinner"></span></span>
+            </button>
+        </div>
+        
+        <!-- Metrics -->
+        <div class="glass-card">
+            <div class="card-header"><div class="card-icon metrics">📊</div><h3 class="card-title">Model Performance</h3></div>
+            <div class="metrics-grid">
+                <div class="metric-item"><div class="metric-ring"><svg viewBox="0 0 70 70"><circle class="bg" cx="35" cy="35" r="30"/><circle class="progress r2" cx="35" cy="35" r="30" id="r2Ring"/></svg><div class="metric-value" id="r2Value">{{ metrics.r2_score }}</div></div><div class="metric-label">R² Score</div></div>
+                <div class="metric-item"><div class="metric-ring"><svg viewBox="0 0 70 70"><circle class="bg" cx="35" cy="35" r="30"/><circle class="progress mae" cx="35" cy="35" r="30" id="maeRing"/></svg><div class="metric-value" id="maeValue">{{ metrics.mae_kW }}</div></div><div class="metric-label">MAE (kW)</div></div>
+                <div class="metric-item"><div class="metric-ring"><svg viewBox="0 0 70 70"><circle class="bg" cx="35" cy="35" r="30"/><circle class="progress rmse" cx="35" cy="35" r="30" id="rmseRing"/></svg><div class="metric-value" id="rmseValue">{{ metrics.rmse_kW }}</div></div><div class="metric-label">RMSE (kW)</div></div>
+            </div>
+            <div class="model-badge"><span>Powered by </span><strong>{{ metrics.model_name }}</strong></div>
+        </div>
+
+        <!-- Weather -->
+        <div class="glass-card weather-section" id="weatherSection" style="display: none;">
+            <div class="card-header"><div class="card-icon location">🌤️</div><h3 class="card-title">Current Weather Conditions</h3></div>
+            <div class="weather-grid">
+                <div class="weather-item"><span class="weather-icon">🌡️</span><div class="weather-value" id="weatherTemp">--</div><div class="weather-label">Temperature (°C)</div></div>
+                <div class="weather-item"><span class="weather-icon">💨</span><div class="weather-value" id="weatherWind">--</div><div class="weather-label">Wind Speed (m/s)</div></div>
+                <div class="weather-item"><span class="weather-icon">☀️</span><div class="weather-value" id="weatherDNI">--</div><div class="weather-label">Solar Irradiance (W/m²)</div></div>
+                <div class="weather-item"><span class="weather-icon">⏰</span><div class="weather-value" id="weatherTime">--</div><div class="weather-label">Local Time</div></div>
+            </div>
+        </div>
+
+        <!-- Gauges -->
+        <div class="glass-card gauge-section" id="gaugeSection" style="display: none;">
+            <div class="card-header"><div class="card-icon metrics">⚡</div><h3 class="card-title">Current Power Output</h3></div>
+            <div class="gauge-grid">
+                <div class="gauge-container">
+                    <div class="gauge"><div class="gauge-bg"></div><div class="gauge-fill electrical" id="electricalGaugeFill"></div><div class="gauge-center"></div><div class="gauge-needle" id="electricalNeedle"></div></div>
+                    <div class="gauge-value-display"><div class="gauge-power electrical" id="electricalGaugeValue">0.00 kW</div><div class="gauge-label">Current Electrical Power</div></div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge"><div class="gauge-bg"></div><div class="gauge-fill thermal" id="thermalGaugeFill"></div><div class="gauge-center"></div><div class="gauge-needle" id="thermalNeedle"></div></div>
+                    <div class="gauge-value-display"><div class="gauge-power thermal" id="thermalGaugeValue">0.00 kW</div><div class="gauge-label">Current Thermal Power</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Electrical Chart -->
+        <div class="glass-card chart-section">
+            <div class="card-header"><div class="card-icon chart">⚡</div><h3 class="card-title">48-Hour Electrical Power Forecast</h3></div>
+            <div class="chart-controls">
+                <button class="chart-btn active" onclick="setChartType('electrical', 'line')" id="elecLineBtn">📈 Line</button>
+                <button class="chart-btn" onclick="setChartType('electrical', 'bar')" id="elecBarBtn">📊 Bar</button>
+                <button class="chart-btn" onclick="resetZoom('electrical')">🔍 Reset Zoom</button>
+                <span class="zoom-hint">🖱️ Scroll to zoom, drag to pan</span>
+            </div>
+            <div class="chart-container" id="chartWrapper">
+                <div class="chart-placeholder" id="placeholder"><div class="chart-placeholder-icon">☀️</div><p>Enter coordinates and click "Generate Forecast"</p></div>
+                <canvas id="chart" style="display: none;"></canvas>
+            </div>
+            <div class="stats-bar" id="statsBar" style="display: none;">
+                <div class="stat-item"><div class="stat-dot peak"></div><div class="stat-info"><span>Peak Electrical</span><strong id="peakPower">-- kW</strong></div></div>
+                <div class="stat-item"><div class="stat-dot avg"></div><div class="stat-info"><span>Average</span><strong id="avgPower">-- kW</strong></div></div>
+                <div class="stat-item"><div class="stat-dot total"></div><div class="stat-info"><span>Total Energy</span><strong id="totalEnergy">-- kWh</strong></div></div>
+            </div>
+        </div>
+
+        <!-- Thermal Chart -->
+        <div class="glass-card chart-section thermal-chart">
+            <div class="card-header"><div class="card-icon thermal">🔥</div><h3 class="card-title">48-Hour Thermal Power Forecast</h3></div>
+            <div class="chart-controls">
+                <button class="chart-btn thermal active" onclick="setChartType('thermal', 'line')" id="thermLineBtn">📈 Line</button>
+                <button class="chart-btn thermal" onclick="setChartType('thermal', 'bar')" id="thermBarBtn">📊 Bar</button>
+                <button class="chart-btn thermal" onclick="resetZoom('thermal')">🔍 Reset Zoom</button>
+            </div>
+            <div class="chart-container" id="thermalChartWrapper">
+                <div class="chart-placeholder" id="thermalPlaceholder"><div class="chart-placeholder-icon">🌡️</div><p>Thermal power prediction will appear here</p></div>
+                <canvas id="thermalChart" style="display: none;"></canvas>
+            </div>
+            <div class="stats-bar" id="thermalStatsBar" style="display: none;">
+                <div class="stat-item"><div class="stat-dot thermal-peak"></div><div class="stat-info"><span>Peak Thermal</span><strong id="thermalPeakPower">-- kW</strong></div></div>
+                <div class="stat-item"><div class="stat-dot thermal-avg"></div><div class="stat-info"><span>Average</span><strong id="thermalAvgPower">-- kW</strong></div></div>
+                <div class="stat-item"><div class="stat-dot thermal-total"></div><div class="stat-info"><span>Total Thermal Energy</span><strong id="thermalTotalEnergy">-- kWh</strong></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer><p>Solar Thermal Forecasting System • Powered by Machine Learning</p></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+window.onerror = function(msg, url, line, col, error) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = `JS Error: ${msg} (Line ${line})`; toast.className = 'toast show error';
+        setTimeout(() => toast.classList.remove('show'), 8000);
+    }
+    return false;
+};
+
+let chartInstance = null;
+let thermalChartInstance = null;
+let currentElecType = 'line';
+let currentThermType = 'line';
+let lastData = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof Chart !== 'undefined') {
+        try {
+            if (typeof window['chartjs-plugin-zoom'] !== 'undefined') Chart.register(window['chartjs-plugin-zoom']);
+            if (typeof window['chartjs-plugin-annotation'] !== 'undefined') Chart.register(window['chartjs-plugin-annotation']);
+        } catch (e) { console.error('Plugin Error:', e); }
+    }
+    animateMetricRings();
+});
+
+function animateMetricRings() {
+    const r2 = parseFloat(document.getElementById('r2Value').textContent) || 0;
+    const circ = 2 * Math.PI * 30;
+    setTimeout(() => { if(document.getElementById('r2Ring')) document.getElementById('r2Ring').style.strokeDashoffset = circ - (r2 * circ); }, 300);
+    setTimeout(() => { 
+        if(document.getElementById('maeRing')) document.getElementById('maeRing').style.strokeDashoffset = circ * 0.25; 
+        if(document.getElementById('rmseRing')) document.getElementById('rmseRing').style.strokeDashoffset = circ * 0.35; 
+    }, 500);
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message; toast.className = 'toast show ' + type;
+    setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function setChartType(chart, type) {
+    if (chart === 'electrical') {
+        currentElecType = type;
+        document.getElementById('elecLineBtn').className = `chart-btn ${type === 'line' ? 'active' : ''}`;
+        document.getElementById('elecBarBtn').className = `chart-btn ${type === 'bar' ? 'active' : ''}`;
+        if (lastData) renderElectricalChart(lastData);
+    } else {
+        currentThermType = type;
+        document.getElementById('thermLineBtn').className = `chart-btn thermal ${type === 'line' ? 'active' : ''}`;
+        document.getElementById('thermBarBtn').className = `chart-btn thermal ${type === 'bar' ? 'active' : ''}`;
+        if (lastData) renderThermalChart(lastData);
+    }
+}
+
+function resetZoom(chart) {
+    if (chart === 'electrical' && chartInstance) chartInstance.resetZoom();
+    else if (chart === 'thermal' && thermalChartInstance) thermalChartInstance.resetZoom();
+}
+
+const TURBINE_EFF = 0.35;
+
+function predict() {
+    const btn = document.getElementById('predictBtn');
+    btn.classList.add('loading'); btn.disabled = true;
+    
+    const lat = document.getElementById('lat').value;
+    const lon = document.getElementById('lon').value;
+    
+    fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: lat, longitude: lon })
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.classList.remove('loading'); btn.disabled = false;
+        
+        if (!data || data.length === 0) {
+            showToast('No forecast data received.', 'error');
+            return;
+        }
+
+        // --- INJECTED FIX: Calculate Thermal Power if missing ---
+        data.forEach(d => {
+             if (d.Predicted_Electrical_Power_kW !== undefined && d.Predicted_Thermal_Power_kW === undefined) {
+                 d.Predicted_Thermal_Power_kW = parseFloat(d.Predicted_Electrical_Power_kW) / TURBINE_EFF;
+             }
+        });
+        
+        lastData = data;
+        
+        document.getElementById('weatherSection').style.display = 'block';
+        document.getElementById('gaugeSection').style.display = 'block';
+        
+        updateWeatherDisplay(data[0]);
+        updateGauges(data[0].Predicted_Electrical_Power_kW, data[0].Predicted_Thermal_Power_kW);
+        
+        renderElectricalChart(data);
+        renderThermalChart(data);
+        showToast('Forecast generated successfully!', 'success');
+    })
+    .catch(err => {
+        btn.classList.remove('loading'); btn.disabled = false;
+        console.error(err);
+        showToast('Prediction failed: ' + err.message, 'error');
+    });
+}
+
+function updateWeatherDisplay(currentData) {
+    const d = new Date(currentData.time);
+    const safeFixed = (val) => (val !== undefined && val !== null) ? val.toFixed(1) : '--';
+    const safeInt = (val) => (val !== undefined && val !== null) ? val.toFixed(0) : '--';
+    
+    document.getElementById('weatherTemp').textContent = safeFixed(currentData.Ambient_Temp_C);
+    document.getElementById('weatherWind').textContent = safeFixed(currentData.Wind_Speed_mps);
+    document.getElementById('weatherDNI').textContent = safeInt(currentData.DNI_W_m2);
+    document.getElementById('weatherTime').textContent = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+function updateGauges(elecPower, thermPower) {
+    // Ensure numeric
+    elecPower = parseFloat(elecPower) || 0;
+    thermPower = parseFloat(thermPower) || 0;
+    
+    const elecMax = 1000; 
+    const elecDeg = Math.min((elecPower / elecMax) * 180, 180);
+    document.getElementById('electricalNeedle').style.transform = `translateX(-50%) rotate(${elecDeg - 90}deg)`;
+    document.getElementById('electricalGaugeFill').style.transform = `rotate(${elecDeg}deg)`;
+    document.getElementById('electricalGaugeValue').textContent = elecPower.toFixed(2) + ' kW';
+    
+    const thermMax = 3000;
+    const thermDeg = Math.min((thermPower / thermMax) * 180, 180);
+    document.getElementById('thermalNeedle').style.transform = `translateX(-50%) rotate(${thermDeg - 90}deg)`;
+    document.getElementById('thermalGaugeFill').style.transform = `rotate(${thermDeg}deg)`;
+    document.getElementById('thermalGaugeValue').textContent = thermPower.toFixed(2) + ' kW';
+}
+
+function getNightRegions(data) {
+    const hiddenRegions = [];
+    let start = null;
+    data.forEach((d, i) => {
+        const date = new Date(d.time);
+        const hour = date.getHours();
+        const isNight = hour >= 18 || hour < 6;
+        if (isNight && start === null) start = i;
+        else if (!isNight && start !== null) {
+            hiddenRegions.push({ type: 'box', xMin: start, xMax: i, backgroundColor: 'rgba(0, 0, 0, 0.3)', borderColor: 'transparent' });
+            start = null;
+        }
+    });
+    if (start !== null) hiddenRegions.push({ type: 'box', xMin: start, xMax: data.length - 1, backgroundColor: 'rgba(0, 0, 0, 0.3)', borderColor: 'transparent' });
+    return hiddenRegions;
+}
+
+function renderElectricalChart(data) {
+    const placeholder = document.getElementById('placeholder');
+    const canvas = document.getElementById('chart');
+    const statsBar = document.getElementById('statsBar');
+    placeholder.style.display = 'none'; canvas.style.display = 'block'; statsBar.style.display = 'flex';
+    
+    const labels = data.map(d => new Date(d.time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+    const values = data.map(d => parseFloat(d.Predicted_Electrical_Power_kW));
+    
+    const peak = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const total = values.reduce((a, b) => a + b, 0);
+    
+    document.getElementById('peakPower').textContent = peak.toFixed(2) + ' kW';
+    document.getElementById('avgPower').textContent = avg.toFixed(2) + ' kW';
+    document.getElementById('totalEnergy').textContent = total.toFixed(1) + ' kWh';
+    
+    const ctx = canvas.getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(251, 191, 36, 0.4)'); gradient.addColorStop(1, 'rgba(251, 191, 36, 0)');
+    
+    chartInstance = new Chart(ctx, {
+        type: currentElecType,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Electrical Power', data: values, borderColor: '#fbbf24', backgroundColor: currentElecType === 'line' ? gradient : '#fbbf24',
+                borderWidth: currentElecType === 'line' ? 3 : 0, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: false }, annotation: { annotations: getNightRegions(data) },
+                zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } },
+                tooltip: { backgroundColor: 'rgba(17, 24, 39, 0.95)', titleColor: '#fff', callbacks: { label: c => 'Power: ' + c.parsed.y.toFixed(2) + ' kW' } }
+            },
+            scales: { x: { grid: { color: 'rgba(255,255,255,0.03)' } }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => v + ' kW' } } }
+        }
+    });
+}
+
+function renderThermalChart(data) {
+    const placeholder = document.getElementById('thermalPlaceholder');
+    const canvas = document.getElementById('thermalChart');
+    const statsBar = document.getElementById('thermalStatsBar');
+    placeholder.style.display = 'none'; canvas.style.display = 'block'; statsBar.style.display = 'flex';
+    
+    const labels = data.map(d => new Date(d.time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+    const values = data.map(d => parseFloat(d.Predicted_Thermal_Power_kW));
+    
+    const peak = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const total = values.reduce((a, b) => a + b, 0);
+    
+    document.getElementById('thermalPeakPower').textContent = peak.toFixed(2) + ' kW';
+    document.getElementById('thermalAvgPower').textContent = avg.toFixed(2) + ' kW';
+    document.getElementById('thermalTotalEnergy').textContent = total.toFixed(1) + ' kWh';
+    
+    const ctx = canvas.getContext('2d');
+    if (thermalChartInstance) thermalChartInstance.destroy();
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(239, 68, 68, 0.4)'); gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    
+    thermalChartInstance = new Chart(ctx, {
+        type: currentThermType,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Thermal Power', data: values, borderColor: '#ef4444', backgroundColor: currentThermType === 'line' ? gradient : '#ef4444',
+                borderWidth: currentThermType === 'line' ? 3 : 0, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { display: false }, annotation: { annotations: getNightRegions(data) },
+                zoom: { zoom: { wheel: { enabled: true }, mode: 'x' }, pan: { enabled: true, mode: 'x' } },
+                tooltip: { backgroundColor: 'rgba(17, 24, 39, 0.95)', titleColor: '#fff', callbacks: { label: c => 'Thermal: ' + c.parsed.y.toFixed(2) + ' kW' } }
+            },
+            scales: { x: { grid: { color: 'rgba(255,255,255,0.03)' } }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => v + ' kW' } } }
+        }
+    });
+}
+</script>
+</body>
+</html>
